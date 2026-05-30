@@ -10,13 +10,21 @@ Works with any AI agent that respects the `--topic` convention (Hermes Agent, Cl
 
 ## The Problem
 
-Every AI conversation starts from scratch. You spend 2 hours on a deep technical analysis. Next week you come back — the AI has no idea what you discussed. You either:
+You're deep in an AI conversation, going back and forth to understand something complex. After 30+ exchanges, you finally have clarity. You ask: *"compile everything we discussed into a formal document."*
 
-- **Trust the AI's memory** — unreliable, degrades over time
-- **Restart the discussion** — time-wasting, never as good as the first time
-- **Copy-paste manually** — tedious, easy to forget
+The AI produces something. But it's missing things. Key points from the first 10 messages are gone. A nuanced argument you made 5 turns ago is reduced to a vague sentence. Another round of "add this, fix that" — still not right.
 
-Topic Session solves this by saving every conversation's key points to structured Markdown files. The next session, just say `continue --topic <name>` and the AI picks up where you left off.
+This gets **much worse** when you interrupt the main thread to ask unrelated questions. The AI's context window compresses, earlier details get squeezed out, and the final document is a shadow of what you actually discussed.
+
+**The root cause:** AI conversations are ephemeral streams. They have no persistent, structured record of what was discussed. Everything relies on the model's context window — which is finite, compressed, and lossy.
+
+Topic Session fixes this by saving every discussion as structured Q&A to a Markdown file — incrementally, as you talk. When you're ready to compile:
+
+1. The full, un-lossy record exists on disk
+2. The AI reads it directly — no context-window compression
+3. The generated document is complete, every key point preserved
+
+No more "the AI forgot what we said 10 messages ago."
 
 ## How It Works
 
