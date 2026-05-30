@@ -1,0 +1,24 @@
+# topic-session
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Environment
+.env
+*.env.local
+
+# Ignore individual topic files (they belong to the user, not the repo)
+topics/
+!.example/
