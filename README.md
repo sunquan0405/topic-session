@@ -1,155 +1,173 @@
 # Topic Session
 
-跨会话对话管理的 Hermes Agent Skill。
+**AI conversations have no memory. This fixes that.**
 
-一句话：**在 AI 对话中用 `--topic 话题名` 标记话题，自动归档、跨会话追溯、终端交互浏览。**
+A lightweight conversation management system for AI agents. Mark any message with `--topic topic-name` to save structured records to disk — searchable, reusable across sessions, browsable from the terminal.
+
+Works with any AI agent that respects the `--topic` convention (Hermes Agent, Claude Code, Codex, OpenCode, or a custom wrapper).
 
 ---
 
-## 解决的问题
+## The Problem
 
-普通 AI 对话是"流式的"——聊完就没了。下次想继续同一个话题，要么靠 AI 的记忆（不可靠），要么重头聊（浪费）。
+Every AI conversation starts from scratch. You spend 2 hours on a deep technical analysis. Next week you come back — the AI has no idea what you discussed. You either:
 
-Topic Session 把每一轮对话的关键讨论**结构化地持久化到文件**，跨会话可追溯、可搜索、可整理。效果：
+- **Trust the AI's memory** — unreliable, degrades over time
+- **Restart the discussion** — time-wasting, never as good as the first time
+- **Copy-paste manually** — tedious, easy to forget
+
+Topic Session solves this by saving every conversation's key points to structured Markdown files. The next session, just say `continue --topic <name>` and the AI picks up where you left off.
+
+## How It Works
 
 ```
-对话中                                文件系统
-───                                   ────
-你: 分析一下技术路线 --topic 行业Agent     → 行业Agent-20260530.md
-                                            ↑ Q: 技术路线分析
-                                            ↑ A: 分层混合架构...
-你: 接着说（新会话）                      → 行业Agent-20260531.md
-继续 --topic 行业Agent                      ↑ Q: RAG vs 训练
-（我自动读取之前内容，给摘要问从哪里继续）     ↑ A: 数据飞轮...
+Chat                              Filesystem
+────                              ────────
+You: analyze these routes         → industry-agent-20260530.md
+     --topic industry-agent           ↑ Q: Technical route analysis
+                                      ↑ A: Layered hybrid architecture...
+You: next session                  → industry-agent-20260601.md
+     continue --topic industry-agent  ↑ Q: RAG vs training
+(I read history, summarize where      ↑ A: Data flywheel...
+ you left off, ask where to go)
 ```
 
-## 快速开始
-
-### 安装
+## Quick Start (30 seconds)
 
 ```bash
-git clone https://github.com/<你的用户名>/topic-session.git
-cd topic-session
+# 1. Set up
+mkdir -p ~/.topic-session/topics
 
-# 方式一：作为 Hermes Skill 安装
-hermes skills install SKILL.md
+# 2. (Optional) Install the terminal browser
+chmod +x install.sh && ./install.sh
 
-# 方式二：手动复制
-cp scripts/topic-select.py ~/.hermes/scripts/
-cp SKILL.md ~/.hermes/skills/
+# 3. Use it
+# In your AI chat:
+#   analyze this market --topic market-analysis
+#   continue --topic market-analysis
+#   --topic --list
 ```
 
-### 配置
+## Installation
 
-在 `~/.hermes/config.yaml` 中添加：
+### As a Hermes Agent Skill
+
+```bash
+git clone https://github.com/sunquan0405/topic-session.git
+cd topic-session
+hermes skills install SKILL.md
+```
+
+### Standalone (any AI agent)
+
+Copy the script to your PATH:
+
+```bash
+cp scripts/topic-select.py ~/bin/topics
+chmod +x ~/bin/topics
+# Ensure ~/bin is in your PATH
+```
+
+Then configure your AI agent to recognize `--topic` markers in your messages — no agent-side code required, it's a user-side convention.
+
+### Configuration (`~/.hermes/config.yaml`)
 
 ```yaml
 topic_session:
-  topic_dir: ~/.topic-session/topics    # 话题文件存放目录（默认）
-  sync_dir: ~/wiki                      # （可选）同步到 Obsidian wiki
-  sync_domain: LLM-Agent/topics         # （可选）wiki 子路径
-  editor: code                          # （可选）编辑话题文件的命令
+  topic_dir: ~/.topic-session/topics    # where topic files live
+  sync_dir: ""                           # optional: sync to wiki/docs
 ```
 
-如果留空，使用默认路径 `~/.topic-session/topics/`。
+Default: `~/.topic-session/topics/`
 
-### 终端工具
+## Usage
+
+### In Chat
+
+| You type | Effect |
+|----------|--------|
+| `question --topic name` | Start a new topic or continue existing |
+| `continue --topic name` | Resume a topic (AI reads history, gives summary) |
+| `--topic --list` | List all topics |
+| `--topic ls` | Same as above |
+| `--topic <number>` | Select by number (#1 = most recent) |
+| `--topic <keyword>` | Filter and list by keyword |
+
+### From Terminal
 
 ```bash
-# 安装 topic-select 到 PATH
-chmod +x install.sh && ./install.sh
-
-# 使用
-topics                          # FZF 交互式浏览
-topics --list                   # 文本列表
+topics                     # FZF interactive browser (requires fzf)
+topics --list              # Plain text list
+ls ~/.topic-session/topics/  # Direct file access
 ```
 
-## 使用方法
-
-### 在对话中
-
-| 输入 | 效果 |
-|------|------|
-| `问题 --topic 话题名` | 创建新话题，或继续已有话题 |
-| `继续 --topic 话题名` | 继续已有话题 |
-| `--topic --list` | 列出所有话题 |
-| `--topic ls` | 同上 |
-| `--topic <数字>` | 按编号选中话题（#1 = 最近更新） |
-| `--topic <关键词>` | 按关键词过滤并列出 |
-
-### 在终端
+### Export to Document
 
 ```bash
-topics                          # FZF 交互式选择
-topics --list                   # 文本列表
-ls ~/.topic-session/topics/     # 直接查看文件
+# In chat:
+export this as a document --topic topic-name
 ```
 
-### 整理为文档
+## File Format
 
-```bash
-# 在对话中
-帮我整理成文档 --topic 话题名
-
-# 在终端
-cat ~/.topic-session/topics/话题名-20260530.md
-```
-
-## 文件格式
-
-每个话题是一个 Markdown 文件，头部包含 YAML 元信息：
+Each topic is a Markdown file with YAML frontmatter:
 
 ```yaml
 ---
-topic: 行业Agent技术路线
+topic: Industry Agent Technical Routes
 created: 2026-05-30
 updated: 2026-05-30
-domain: LLM-Agent
+domain: AI-Agent
 status: active
-sessions: 1
+sessions: 3
 tags:
   - agent-architecture
-  - industry-model
-summary: 分析行业Agent的两条技术路线...
+  - RAG
+  - skill-ecosystem
+summary: Analysis of technical routes for building industry agents...
 ---
 ```
 
-文件名：`{归一化话题名}-{YYYYMMDD}.md`
+File name: `{topic-name}-{YYYYMMDD}.md`
 
-日期后缀 = 最后更新日期，每次跨会话追加后自动更新。
+The date suffix reflects the last update. Updated automatically on cross-session continuation.
 
-## 文件目录结构
+## Project Structure
 
 ```
 ~/.topic-session/
 ├── topics/
-│   ├── 行业Agent技术路线-20260530.md
+│   ├── Industry-Agent-Technical-Routes-20260530.md
 │   └── ...
 └── scripts/
     └── topic-select.py
 ```
 
-## 依赖
+## Dependencies
 
-- Python 3.8+
-- PyYAML（可选，不装则用正则解析）
-- fzf（可选，用于 `topics` 交互式浏览）
+- **Python 3.8+** — for the terminal browser
+- **fzf** *(optional)* — interactive terminal browsing
+  ```bash
+  brew install fzf      # macOS
+  sudo apt install fzf  # Linux
+  ```
 
-```bash
-# 可选依赖
-pip install pyyaml
-brew install fzf      # macOS
-apt install fzf       # Linux
-```
+## vs `--note` (if your AI supports both)
 
-## 与 `--note` 的区别
+| Marker | Purpose | Granularity |
+|--------|---------|-------------|
+| `--note` | Capture a single sentence or quote | Fragment |
+| `--topic` | Manage a full conversation thread | Conversation |
 
-| 标记 | 用途 | 粒度 |
-|------|------|------|
-| `--note` | 单句/段落的快速捕捉 | 片段级 |
-| `--topic` | 整轮对话的结构化管理 | 对话级 |
+Can be used together without conflict.
 
-两者可同时使用，互不冲突。
+## Why use it
+
+- **No vendor lock-in** — just Markdown files and a convention
+- **Human-readable** — open with any text editor, grep, or Obsidian
+- **Cross-session** — pick up exactly where you left off
+- **Structured metadata** — YAML frontmatter for tags, domain, status
+- **Terminal friendly** — `topics` command for quick browsing
 
 ## License
 
